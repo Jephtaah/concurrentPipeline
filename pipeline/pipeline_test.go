@@ -3,6 +3,7 @@ package pipeline
 import (
 	"context"
 	"testing"
+	"time"
 )
 
 func TestPipelineCorrectness(t *testing.T) {
@@ -66,5 +67,41 @@ func TestWorkersWithRetryRecoverFromFailures(t *testing.T) {
 
 	if got < jobCount-5 {
 		t.Fatalf("expected nearly all %d jobs to succeed via retry, got %d", jobCount, got)
+	}
+}
+
+func TestPauserActuallyBlocksWorkers(t *testing.T) {
+	ctx := context.Background()
+	pauser := NewPauser()
+	pauser.Pause() // start paused
+
+	jobs := Generate(ctx, 5)
+	agg := &Aggregator{}
+	results := StartWorkersPausable(ctx, jobs, 2, agg, pauser)
+
+	done := make(chan struct{})
+	go func() {
+		for range results {
+		}
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		t.Fatal("pipeline completed while paused — pause is not actually blocking workers")
+	case <-time.After(200 * time.Millisecond):
+	}
+
+	pauser.Resume()
+
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("pipeline did not complete after Resume — workers stuck")
+	}
+
+	count, _ := agg.Snapshot()
+	if count != 5 {
+		t.Fatalf("expected 5 results after resume, got %d", count)
 	}
 }
