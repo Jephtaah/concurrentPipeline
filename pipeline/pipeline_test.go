@@ -20,3 +20,16 @@ func TestPipelineCorrectness(t *testing.T) {
 		}
 	}
 }
+
+func benchmarkPipeline(b *testing.B, workers int) {
+	for i := 0; i < b.N; i++ {
+		Run(Config{
+			JobCount:   10000,
+			NumWorkers: workers,
+		})
+	}
+}
+
+func BenchmarkPipeline1Worker(b *testing.B)   { benchmarkPipeline(b, 1) }
+func BenchmarkPipeline4Workers(b *testing.B)  { benchmarkPipeline(b, 4) }
+func BenchmarkPipeline16Workers(b *testing.B) { benchmarkPipeline(b, 16) }
