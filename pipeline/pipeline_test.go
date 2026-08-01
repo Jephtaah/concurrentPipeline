@@ -33,3 +33,17 @@ func benchmarkPipeline(b *testing.B, workers int) {
 func BenchmarkPipeline1Worker(b *testing.B)   { benchmarkPipeline(b, 1) }
 func BenchmarkPipeline4Workers(b *testing.B)  { benchmarkPipeline(b, 4) }
 func BenchmarkPipeline16Workers(b *testing.B) { benchmarkPipeline(b, 16) }
+
+func benchmarkPipelineSlow(b *testing.B, workers int) {
+	for i := 0; i < b.N; i++ {
+		runSlow(Config{
+			JobCount:   200,
+			NumWorkers: workers,
+		})
+	}
+}
+
+func BenchmarkPipelineSlow1Worker(b *testing.B)  { benchmarkPipelineSlow(b, 1) }
+func BenchmarkPipelineSlow4Workers(b *testing.B) { benchmarkPipelineSlow(b, 4) }
+func BenchmarkPipelineSlow8Workers(b *testing.B) { benchmarkPipelineSlow(b, 8) }
+func BenchmarkPipelineSlow16Workers(b *testing.B) { benchmarkPipelineSlow(b, 16) }
