@@ -1,6 +1,9 @@
 package pipeline
 
-import "testing"
+import (
+	"context"
+	"testing"
+)
 
 func TestPipelineCorrectness(t *testing.T) {
 	workerCounts := []int{1, 4, 16}
@@ -43,7 +46,25 @@ func benchmarkPipelineSlow(b *testing.B, workers int) {
 	}
 }
 
-func BenchmarkPipelineSlow1Worker(b *testing.B)  { benchmarkPipelineSlow(b, 1) }
-func BenchmarkPipelineSlow4Workers(b *testing.B) { benchmarkPipelineSlow(b, 4) }
-func BenchmarkPipelineSlow8Workers(b *testing.B) { benchmarkPipelineSlow(b, 8) }
+func BenchmarkPipelineSlow1Worker(b *testing.B)   { benchmarkPipelineSlow(b, 1) }
+func BenchmarkPipelineSlow4Workers(b *testing.B)  { benchmarkPipelineSlow(b, 4) }
+func BenchmarkPipelineSlow8Workers(b *testing.B)  { benchmarkPipelineSlow(b, 8) }
 func BenchmarkPipelineSlow16Workers(b *testing.B) { benchmarkPipelineSlow(b, 16) }
+
+func TestWorkersWithRetryRecoverFromFailures(t *testing.T) {
+	ctx := context.Background()
+	jobCount := 500
+
+	jobs := Generate(ctx, jobCount)
+	agg := &Aggregator{}
+	results := StartWorkersWithRetry(ctx, jobs, 4, agg)
+
+	got := 0
+	for range results {
+		got++
+	}
+
+	if got < jobCount-5 {
+		t.Fatalf("expected nearly all %d jobs to succeed via retry, got %d", jobCount, got)
+	}
+}
