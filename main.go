@@ -1,23 +1,26 @@
 package main
 
 import (
-	"context"
+	"flag"
 	"fmt"
+	"time"
 
 	"concurrentPipeline/pipeline"
 )
 
 func main() {
-	ctx := context.Background()
+	jobCount := flag.Int("jobs", 1000, "number of jobs to process")
+	workers := flag.Int("workers", 4, "number of worker goroutines")
+	timeout := flag.Duration("timeout", 5*time.Second, "pipeline timeout")
+	flag.Parse()
 
-	jobs := pipeline.Generate(ctx, 20)
-	agg := &pipeline.Aggregator{}
-	results := pipeline.StartWorkers(ctx, jobs, 4, agg)
+	start := time.Now()
+	count, sum, completed := pipeline.Run(pipeline.Config{
+		JobCount:   *jobCount,
+		NumWorkers: *workers,
+		Timeout:    *timeout,
+	})
+	elapsed := time.Since(start)
 
-	for r := range results {
-		fmt.Println(r)
-	}
-
-	count, sum := agg.Snapshot()
-	fmt.Printf("count=%d sum=%d\n", count, sum)
+	fmt.Printf("completed=%v processed=%d sum=%d elapsed=%s\n", completed, count, sum, elapsed)
 }
